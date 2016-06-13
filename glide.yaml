@@ -1,0 +1,8 @@
+package: github.com/kimjmin/lsbeat
+import:
+- package: github.com/elastic/beats
+  subpackages:
+  - libbeat/beat
+  - libbeat/common
+  - libbeat/logp
+  - libbeat/publisher
