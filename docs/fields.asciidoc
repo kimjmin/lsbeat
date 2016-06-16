@@ -10,6 +10,7 @@ This document describes the fields that are exported by Lsbeat. They are
 grouped in the following categories:
 
 * <<exported-fields-beat>>
+* <<exported-fields-lsbeat>>
 
 [[exported-fields-beat]]
 === Beat Fields
@@ -52,4 +53,33 @@ type: dict
 
 Contains user configurable fields.
 
+
+[[exported-fields-lsbeat]]
+
+==== counter
+
+type: integer
+
+required: True
+
+PLEASE UPDATE DOCUMENTATION
+
+
+==== modTime
+
+type: date
+
+==== filename
+
+type: text
+
+==== fullname
+
+==== isDirectory
+
+type: boolean
+
+==== fileSize
+
+type: long
 

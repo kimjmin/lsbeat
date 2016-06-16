@@ -9,4 +9,5 @@ type Config struct {
 
 type LsbeatConfig struct {
 	Period string `config:"period"`
+	Path   string `config:"path"`
 }
