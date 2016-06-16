@@ -359,16 +359,14 @@ set mappings and analyzer `lsbeat.template.json`
 }
 ```
 
+### build and run
 
+```
+make
+```
+modify `lsbeat.yml` file for scanning root directory
 
-
-## metricbeat
-metricbeat template
+run elasticsearch and kibana
 ```
-curl -XPUT 'http://localhost:9200/_template/metricbeat' -d@metricbeat.template.json
-```
-dashboard
-```
-../dev-tools/import_dashboards.sh -h
-../dev-tools/import_dashboards.sh -d etc/kibana
+./lsbeat
 ```
