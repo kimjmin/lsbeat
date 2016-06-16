@@ -248,7 +248,9 @@ vi etc/fields.yml
 ```
 add fields
 ```yml
-lsbeat:
+- key: lsbeat
+  title: LS Beat
+  descrtiption: 
   fields:
     - name: counter
       type: integer
