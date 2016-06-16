@@ -175,7 +175,7 @@ func (bt *Lsbeat) Setup(b *beat.Beat) error {
         bt.path = bt.beatConfig.Lsbeat.Path
 ```
 
-add `listDir` function on the bottom
+add `listDir()` function on the bottom
 ```go
 func listDir(dirFile string, bt *Lsbeat, b *beat.Beat, counter int) {
 	files, _ := ioutil.ReadDir(dirFile)
@@ -198,7 +198,7 @@ func listDir(dirFile string, bt *Lsbeat, b *beat.Beat, counter int) {
 			bt.client.PublishEvent(event) //elasticsearch index.
 		} else {
 			//after second routine, index only files and directories which created after previous routine
-			if t.After(bt.lasIndexTime) {
+			if t.After(bt.lastIndexTime) {
 				bt.client.PublishEvent(event) //elasticsearch index.
 			}
 		}
@@ -210,17 +210,69 @@ func listDir(dirFile string, bt *Lsbeat, b *beat.Beat, counter int) {
 }
 ```
 
+edit `Run()`, function to call `listDir()`
+```go
+func (bt *Lsbeat) Run(b *beat.Beat) error {
+	logp.Info("lsbeat is running! Hit CTRL-C to stop it.")
 
+	ticker := time.NewTicker(bt.period)
+	counter := 1
+	for {
+		listDir(bt.path, bt, b, counter) // call lsDir
+		bt.lastIndexTime = time.Now()     // mark Timestamp
 
+		select {
+		case <-bt.done:
+			return nil
+		case <-ticker.C:
+		}
 
-### install beats package
+		// Remove previous logic.
+		// event := common.MapStr{
+		// 	"@timestamp": common.Time(time.Now()),
+		// 	"type":       b.Name,
+		// 	"counter":    counter,
+		// }
+		// bt.client.PublishEvent(event)
+
+		logp.Info("Event sent")
+		counter++
+	}
+}
 ```
-go get github.com/elastic/beats
+
+### add new field informations
+open `etc/fields.yml`
+```
+vi etc/fields.yml
+```
+add fields
+```yml
+lsbeat:
+  fields:
+    - name: counter
+      type: integer
+      required: true
+      description: >
+        PLEASE UPDATE DOCUMENTATION
+    #new fiels added lsbeat
+    - name: modTime
+      type: date
+    - name: filename
+      type: text
+    - name: fullname
+    - name: isDirectory
+      type: boolean
+    - name: fileSize
+      type: long
 ```
 
+apply new updates
+```
+make update
+```
 
-
-lsbeat.template.json
+set mappings and analyzer `lsbeat.template.json`
 ```
 {
   "mappings": {
@@ -256,7 +308,7 @@ lsbeat.template.json
             }
           }
         },
-         "counter": {
+        "counter": {
           "type": "integer"
         },
         "filename": {
