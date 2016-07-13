@@ -55,8 +55,8 @@ func (bt *Lsbeat) Run(b *beat.Beat) error {
 		}
 
 		now := time.Now()
-		bt.listDir(bt.config.Path, b.Name, false) // call lsDir
-		bt.lastIndexTime = now                    // mark Timestamp
+		bt.listDir(bt.config.Path, b.Name, true) // call lsDir
+		bt.lastIndexTime = now                   // mark Timestamp
 
 		logp.Info("Event sent")
 	}
@@ -75,13 +75,13 @@ func (bt *Lsbeat) listDir(dirFile string, beatname string, init bool) {
 		//fmt.Println(f.Name(), dirFile+"/"+f.Name(), f.IsDir(), t, f.Size())
 
 		event := common.MapStr{
-			"@timestamp":  common.Time(time.Now()),
-			"type":        beatname,
-			"modTime":     common.Time(t),
-			"filename":    f.Name(),
-			"fullname":    dirFile + "/" + f.Name(),
-			"isDirectory": f.IsDir(),
-			"fileSize":    f.Size(),
+			"@timestamp":   common.Time(time.Now()),
+			"type":         beatname,
+			"mod_time":     common.Time(t),
+			"file_name":    f.Name(),
+			"full_name":    dirFile + "/" + f.Name(),
+			"is_directory": f.IsDir(),
+			"file_size":    f.Size(),
 		}
 		if init {
 			// index all files and directories on init
@@ -94,7 +94,7 @@ func (bt *Lsbeat) listDir(dirFile string, beatname string, init bool) {
 		}
 
 		if f.IsDir() {
-			bt.listDir(dirFile+"/"+f.Name(), beatname, counter)
+			bt.listDir(dirFile+"/"+f.Name(), beatname, false)
 		}
 	}
 }

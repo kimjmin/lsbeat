@@ -76,25 +76,25 @@ PLEASE UPDATE DOCUMENTATION
 
 
 [float]
-=== modTime
+=== mod_time
 
 type: date
 
 [float]
-=== filename
+=== file_name
 
 type: text
 
 [float]
-=== fullname
+=== full_name
 
 [float]
-=== isDirectory
+=== is_directory
 
 type: boolean
 
 [float]
-=== fileSize
+=== file_size
 
 type: long
 

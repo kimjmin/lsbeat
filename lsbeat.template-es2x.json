@@ -40,25 +40,25 @@
         "counter": {
           "type": "long"
         },
-        "fileSize": {
-          "type": "long"
-        },
-        "filename": {
+        "file_name": {
           "index": "analyzed",
           "norms": {
             "enabled": false
           },
           "type": "string"
         },
-        "fullname": {
+        "file_size": {
+          "type": "long"
+        },
+        "full_name": {
           "ignore_above": 1024,
           "index": "not_analyzed",
           "type": "string"
         },
-        "isDirectory": {
+        "is_directory": {
           "type": "boolean"
         },
-        "modTime": {
+        "mod_time": {
           "type": "date"
         },
         "tags": {
