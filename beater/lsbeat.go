@@ -42,8 +42,8 @@ func (bt *Lsbeat) Run(b *beat.Beat) error {
 
 	bt.client = b.Publisher.Connect()
 
-	bt.listDir(bt.config.Path, b.Name, false) // init directory
-	bt.lastIndexTime = time.Now()             // init indexing timestamp
+	bt.listDir(bt.config.Path, b.Name, true) // init directory
+	bt.lastIndexTime = time.Now()            // init indexing timestamp
 
 	ticker := time.NewTicker(bt.config.Period)
 	for {
@@ -55,8 +55,8 @@ func (bt *Lsbeat) Run(b *beat.Beat) error {
 		}
 
 		now := time.Now()
-		bt.listDir(bt.config.Path, b.Name, true) // call lsDir
-		bt.lastIndexTime = now                   // mark Timestamp
+		bt.listDir(bt.config.Path, b.Name, false) // call lsDir
+		bt.lastIndexTime = now                    // mark Timestamp
 
 		logp.Info("Event sent")
 	}
