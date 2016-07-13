@@ -35,22 +35,22 @@
         "counter": {
           "type": "long"
         },
-        "file_name": {
+        "directory": {
+          "type": "boolean"
+        },
+        "filename": {
           "norms": false,
           "type": "text"
         },
-        "file_size": {
+        "filesize": {
           "type": "long"
         },
-        "full_name": {
+        "modtime": {
+          "type": "date"
+        },
+        "path": {
           "ignore_above": 1024,
           "type": "keyword"
-        },
-        "is_directory": {
-          "type": "boolean"
-        },
-        "mod_time": {
-          "type": "date"
         },
         "tags": {
           "ignore_above": 1024,

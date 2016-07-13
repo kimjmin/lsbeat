@@ -8,12 +8,12 @@
       description: >
         PLEASE UPDATE DOCUMENTATION
     #new fiels added lsbeat
-    - name: mod_time
+    - name: modtime
       type: date
-    - name: file_name
+    - name: filename
       type: text
-    - name: full_name
-    - name: is_directory
+    - name: path
+    - name: directory
       type: boolean
-    - name: file_size
+    - name: filesize
       type: long
