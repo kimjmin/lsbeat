@@ -41,8 +41,11 @@ func (bt *Lsbeat) Run(b *beat.Beat) error {
 	logp.Info("lsbeat is running! Hit CTRL-C to stop it.")
 
 	bt.client = b.Publisher.Connect()
+
+	bt.listDir(bt.config.Path, b.Name, true) // init directory
+	bt.lastIndexTime = time.Now()            // init indexing timestamp
+
 	ticker := time.NewTicker(bt.config.Period)
-	counter := 1
 	for {
 
 		select {
@@ -51,11 +54,11 @@ func (bt *Lsbeat) Run(b *beat.Beat) error {
 		case <-ticker.C:
 		}
 
-		bt.listDir(bt.config.Path, b.Name, counter) // call lsDir
-		bt.lastIndexTime = time.Now()               // mark Timestamp
+		now := time.Now()
+		bt.listDir(bt.config.Path, b.Name, false) // call lsDir
+		bt.lastIndexTime = now                    // mark Timestamp
 
 		logp.Info("Event sent")
-		counter++
 	}
 
 }
@@ -65,7 +68,7 @@ func (bt *Lsbeat) Stop() {
 	close(bt.done)
 }
 
-func (bt *Lsbeat) listDir(dirFile string, beatname string, counter int) {
+func (bt *Lsbeat) listDir(dirFile string, beatname string, init bool) {
 	files, _ := ioutil.ReadDir(dirFile)
 	for _, f := range files {
 		t := f.ModTime()
@@ -74,18 +77,17 @@ func (bt *Lsbeat) listDir(dirFile string, beatname string, counter int) {
 		event := common.MapStr{
 			"@timestamp":  common.Time(time.Now()),
 			"type":        beatname,
-			"counter":     counter,
 			"modTime":     common.Time(t),
 			"filename":    f.Name(),
 			"fullname":    dirFile + "/" + f.Name(),
 			"isDirectory": f.IsDir(),
 			"fileSize":    f.Size(),
 		}
-		//index all files and directories for first routine.
-		if counter == 1 {
+		if init {
+			// index all files and directories on init
 			bt.client.PublishEvent(event) //elasticsearch index.
 		} else {
-			//after second routine, index only files and directories which created after previous routine
+			// Index only changed files since last run.
 			if t.After(bt.lastIndexTime) {
 				bt.client.PublishEvent(event) //elasticsearch index.
 			}
