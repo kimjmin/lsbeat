@@ -64,6 +64,10 @@ Contains user configurable fields.
 
 
 [[exported-fields-lsbeat]]
+== LS Beat Fields
+
+None
+
 
 [float]
 === counter
