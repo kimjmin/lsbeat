@@ -32,15 +32,6 @@ output.elasticsearch:
   # Array of hosts to connect to.
   hosts: ["localhost:9200"]
 
-  # Template name. By default the template name is lsbeat.
-  template.name: "lsbeat"
-
-  # Path to template file
-  template.path: "lsbeat.template.json"
-
-  # Overwrite existing template
-  template.overwrite: false
-
 #----------------------------- Logstash output --------------------------------
 #output.logstash:
   # The Logstash hosts
@@ -61,3 +52,8 @@ output.elasticsearch:
 # Sets log level. The default log level is error.
 # Available log levels are: critical, error, warning, info, debug
 #logging.level: debug
+
+# At debug level, you can selectively enable logging only for some components.
+# To enable all selectors use ["*"]. Examples of other selectors are "beat",
+# "publish", "service".
+#logging.selectors: ["*"]

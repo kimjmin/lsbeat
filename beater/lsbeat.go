@@ -14,92 +14,58 @@ import (
 )
 
 type Lsbeat struct {
-	beatConfig    *config.Config
-	done          chan struct{}
-	period        time.Duration
-	client        publisher.Client
-	path          string
+	done   chan struct{}
+	config config.Config
+	client publisher.Client
+
 	lastIndexTime time.Time
 }
 
 // Creates beater
-func New() *Lsbeat {
-	return &Lsbeat{
-		done: make(chan struct{}),
+func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
+	config := config.DefaultConfig
+	if err := cfg.Unpack(&config); err != nil {
+		return nil, fmt.Errorf("Error reading config file: %v", err)
 	}
+
+	ls := &Lsbeat{
+		done:   make(chan struct{}),
+		config: config,
+	}
+	return ls, nil
 }
 
 /// *** Beater interface methods ***///
 
-func (bt *Lsbeat) Config(b *beat.Beat) error {
-
-	// Load beater beatConfig
-	err := b.RawConfig.Unpack(&bt.beatConfig)
-	if err != nil {
-		return fmt.Errorf("Error reading config file: %v", err)
-	}
-
-	return nil
-}
-
-func (bt *Lsbeat) Setup(b *beat.Beat) error {
-
-	// Setting default period if not set
-	if bt.beatConfig.Lsbeat.Period == "" {
-		bt.beatConfig.Lsbeat.Period = "1s"
-	}
-
-	if bt.beatConfig.Lsbeat.Path == "" {
-		bt.beatConfig.Lsbeat.Path = "."
-	}
-	bt.path = bt.beatConfig.Lsbeat.Path
-
-	bt.client = b.Publisher.Connect()
-
-	var err error
-	bt.period, err = time.ParseDuration(bt.beatConfig.Lsbeat.Period)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (bt *Lsbeat) Run(b *beat.Beat) error {
 	logp.Info("lsbeat is running! Hit CTRL-C to stop it.")
 
-	ticker := time.NewTicker(bt.period)
+	bt.client = b.Publisher.Connect()
+	ticker := time.NewTicker(bt.config.Period)
 	counter := 1
 	for {
-		listDir(bt.path, bt, b, counter) // call lsDir
-		bt.lastIndexTime = time.Now()    // mark Timestamp
 
 		select {
 		case <-bt.done:
 			return nil
 		case <-ticker.C:
 		}
-		// Remove previous logic.
-		// event := common.MapStr{
-		// 	"@timestamp": common.Time(time.Now()),
-		// 	"type":       b.Name,
-		// 	"counter":    counter,
-		// }
-		// bt.client.PublishEvent(event)
+
+		bt.listDir(bt.config.Path, b.Name, counter) // call lsDir
+		bt.lastIndexTime = time.Now()               // mark Timestamp
+
 		logp.Info("Event sent")
 		counter++
 	}
-}
 
-func (bt *Lsbeat) Cleanup(b *beat.Beat) error {
-	return nil
 }
 
 func (bt *Lsbeat) Stop() {
+	bt.client.Close()
 	close(bt.done)
 }
 
-func listDir(dirFile string, bt *Lsbeat, b *beat.Beat, counter int) {
+func (bt *Lsbeat) listDir(dirFile string, beatname string, counter int) {
 	files, _ := ioutil.ReadDir(dirFile)
 	for _, f := range files {
 		t := f.ModTime()
@@ -107,7 +73,7 @@ func listDir(dirFile string, bt *Lsbeat, b *beat.Beat, counter int) {
 
 		event := common.MapStr{
 			"@timestamp":  common.Time(time.Now()),
-			"type":        b.Name,
+			"type":        beatname,
 			"counter":     counter,
 			"modTime":     t,
 			"filename":    f.Name(),
@@ -126,7 +92,7 @@ func listDir(dirFile string, bt *Lsbeat, b *beat.Beat, counter int) {
 		}
 
 		if f.IsDir() {
-			listDir(dirFile+"/"+f.Name(), bt, b, counter)
+			bt.listDir(dirFile+"/"+f.Name(), beatname, counter)
 		}
 	}
 }
