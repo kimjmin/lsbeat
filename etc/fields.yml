@@ -1,6 +1,6 @@
 - key: lsbeat
   title: LS Beat
-  descrtiption: 
+  description: 
   fields:
     - name: counter
       type: integer
