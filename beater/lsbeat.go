@@ -75,7 +75,7 @@ func (bt *Lsbeat) listDir(dirFile string, beatname string, counter int) {
 			"@timestamp":  common.Time(time.Now()),
 			"type":        beatname,
 			"counter":     counter,
-			"modTime":     t,
+			"modTime":     common.Time(t),
 			"filename":    f.Name(),
 			"fullname":    dirFile + "/" + f.Name(),
 			"isDirectory": f.IsDir(),
