@@ -4,32 +4,39 @@ This file is generated! See etc/fields.yml and scripts/generate_field_docs.py
 ////
 
 [[exported-fields]]
-== Exported Fields
+= Exported Fields
 
+[partintro]
+
+--
 This document describes the fields that are exported by Lsbeat. They are
 grouped in the following categories:
 
 * <<exported-fields-beat>>
 * <<exported-fields-lsbeat>>
 
+--
 [[exported-fields-beat]]
-=== Beat Fields
+== Beat Fields
 
 Contains common beat fields available in all event types.
 
 
 
-==== beat.name
+[float]
+=== beat.name
 
 The name of the Beat sending the log messages. If the shipper name is set in the configuration file, then that value is used. If it is not set, the hostname is used.
 
 
-==== beat.hostname
+[float]
+=== beat.hostname
 
 The hostname as returned by the operating system on which the Beat is running.
 
 
-==== @timestamp
+[float]
+=== @timestamp
 
 type: date
 
@@ -42,12 +49,14 @@ required: True
 The timestamp when the event log record was generated.
 
 
-==== tags
+[float]
+=== tags
 
 Arbitrary tags that can be set per Beat and per transaction type.
 
 
-==== fields
+[float]
+=== fields
 
 type: dict
 
@@ -56,7 +65,8 @@ Contains user configurable fields.
 
 [[exported-fields-lsbeat]]
 
-==== counter
+[float]
+=== counter
 
 type: integer
 
@@ -65,21 +75,26 @@ required: True
 PLEASE UPDATE DOCUMENTATION
 
 
-==== modTime
+[float]
+=== modTime
 
 type: date
 
-==== filename
+[float]
+=== filename
 
 type: text
 
-==== fullname
+[float]
+=== fullname
 
-==== isDirectory
+[float]
+=== isDirectory
 
 type: boolean
 
-==== fileSize
+[float]
+=== fileSize
 
 type: long
 
