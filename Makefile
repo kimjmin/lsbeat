@@ -1,5 +1,5 @@
 BEATNAME=lsbeat
-BEAT_DIR=github.com/monicasarbu
+BEAT_DIR=github.com/kimjmin
 SYSTEM_TESTS=false
 TEST_ENVIRONMENT=false
 ES_BEATS?=${GOPATH}/src/github.com/elastic/beats
