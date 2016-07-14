@@ -64,6 +64,10 @@ Contains user configurable fields.
 
 
 [[exported-fields-lsbeat]]
+== LS Beat Fields
+
+None
+
 
 [float]
 === counter
@@ -76,7 +80,7 @@ PLEASE UPDATE DOCUMENTATION
 
 
 [float]
-=== modTime
+=== modtime
 
 type: date
 
@@ -86,15 +90,15 @@ type: date
 type: text
 
 [float]
-=== fullname
+=== path
 
 [float]
-=== isDirectory
+=== directory
 
 type: boolean
 
 [float]
-=== fileSize
+=== filesize
 
 type: long
 

@@ -63,7 +63,7 @@ $ cookiecutter $GOPATH/src/github.com/elastic/beats/generate/beat
 Cookiecutter will ask you several questions. For your project_name enter `lsbeat`, for github_user - `your github id`. The next two question with for beat and beat_path should already be automatically set correct. For the last one your can insert your `Firstname Lastname`.
 ```sh
 project_name [Examplebeat]: lsbeat
-github_name [your-github-name]: {user}
+github_name [your-github-name]: {username}
 beat [lsbeat]:
 beat_path [github.com/{github id}]:
 full_name [Firstname Lastname]: {Full Name}
@@ -124,8 +124,8 @@ $ make commit
 It will create a clean git history for each major step. Note that you can always rewrite the history if you wish before pushing your changes. From now on you can use all the normal git commands you are used to. To push `lsbeat` in the git repository, run the following commands:
 
 ```sh
-$ git remote set-url origin https://github.com/{user}/lsbeat
-$ git push origin master
+$ git remote add origin git@github.com:{username}/lsbeat.git
+$ git push -u origin master
 ```
 
 Now we have a complete beat and pushed the first to Github. Lets build and run our beat and then dig deeper into the code.
@@ -170,13 +170,16 @@ After changing yml files, you should edit `config/config.go` so we can use new p
 ```go
 package config
 
+import "time"
+
 type Config struct {
-        Lsbeat LsbeatConfig
+	Period time.Duration `config:"period"`
+	Path   string        `config:"path"`
 }
 
-type LsbeatConfig struct {
-        Period string `config:"period"`
-        Path   string `config:"path"`
+var DefaultConfig = Config{
+	Period: 1 * time.Second,
+	Path:   ".",
 }
 ```
 
@@ -184,64 +187,72 @@ type LsbeatConfig struct {
 
 Once you check `/vendor/elastic/beats/libbeat/beat/beat.go` file, you can find interfaces which should be implemented in your beat program.
 ```go
+// Beater is the interface that must be implemented by every Beat. A Beater
+// provides the main Run-loop and a Stop method to break the Run-loop.
+// Instantiation and Configuration is normally provided by a Beat-`Creator`.
+//
+// Once the beat is fully configured, the Run() method is invoked. The
+// Run()-method implements the beat its run-loop. Once the Run()-method returns,
+// the beat shuts down.
+//
+// The Stop() method is invoked the first time (and only the first time) a
+// shutdown signal is received. The Stop()-method normally will stop the Run()-loop,
+// such that the beat can gracefully shutdown.
 type Beater interface {
-	Config(*Beat) error  // Read and validate configuration.
-	Setup(*Beat) error   // Initialize the Beat.
-	Run(*Beat) error     // The main event loop. This method should block until signalled to stop by an invocation of the Stop() method.
-	Cleanup(*Beat) error // Cleanup is invoked to perform any final clean-up prior to exiting.
-	Stop()               // Stop is invoked to signal that the Run method should finish its execution. It will be invoked at most once.
+	// The main event loop. This method should block until signalled to stop by an
+	// invocation of the Stop() method.
+	Run(b *Beat) error
+
+	// Stop is invoked to signal that the Run method should finish its execution.
+	// It will be invoked at most once.
+	Stop()
 }
 ```
 
-These `Config`, `Setup`, `Run`, `Cleanup`, `Stop` 5 interfaces are essential routine that Beat processes in common. These functions are implemented in `beater/lsbeat.go` file.
+Each Beat needs to implement the Beater interface, by overwriting the `Run()`
+and `Stop()` functions. These functions are implemented in `beater/lsbeat.go` file.
 
-In top of `lsbeat.go` file, there is a struct named `Lsbeat`, which contains global variables. You have to add a parameter variable under this struct. Lets add `path` the parameter we created, and `lastIndexTime` which we will use for saving last timestamp data.
+At the top of `lsbeat.go` file, there is a struct named `Lsbeat`, which defines
+the Lsbeat object and it should implement the Beater interface. Let’s add
+`lastIndexTime` which we will use for saving last timestamp data.
+
 ```go
 type Lsbeat struct {
-	beatConfig   *config.Config
-	done         chan struct{}
-	period       time.Duration
-	client       publisher.Client
-	path         string    //root directory
-	lasIndexTime time.Time //last timestamp
+	done   chan struct{}
+	config config.Config
+	client publisher.Client
+
+	lastIndexTime time.Time
 }
 ```
 
-## Step 5 - Add codes
+## Step 5 - Add code
 
-Lets move to `Setup` function to initialize values we created. Set "10s" for init value on variable `period`.
+Besides the `Run()` and the `Stop()` functions, each Beat needs to implement
+the `New()` function to be able to create the Beat object, in our case of type
+`Lsbeat`. The `New()` function receives the configuration options defined for the Beat.
+
 ```go
-func (bt *Lsbeat) Setup(b *beat.Beat) error {
-
-	// Setting default period if not set
-	if bt.beatConfig.Lsbeat.Period == "" {
-		bt.beatConfig.Lsbeat.Period = "10s"
-	}
-  
-  // path 값을 lsbeat.yml 에 설정된 값으로 설정.
-	if bt.beatConfig.Lsbeat.Path == "" {
-		bt.beatConfig.Lsbeat.Path = "."
-	}
-	bt.path = bt.beatConfig.Lsbeat.Path
-  
-	bt.client = b.Publisher.Connect()
-
-	var err error
-	bt.period, err = time.ParseDuration(bt.beatConfig.Lsbeat.Period)
-	if err != nil {
-		return err
+func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
+	config := config.DefaultConfig
+	if err := cfg.Unpack(&config); err != nil {
+		return nil, fmt.Errorf("Error reading config file: %v", err)
 	}
 
-	return nil
+	ls := &Lsbeat{
+		done:   make(chan struct{}),
+		config: config,
+	}
+	return ls, nil
 }
 ```
-
 Now, lets move to `Run` function which is the most important.
 ```go
 func (bt *Lsbeat) Run(b *beat.Beat) error {
 	logp.Info("lsbeat is running! Hit CTRL-C to stop it.")
 
-	ticker := time.NewTicker(bt.period)
+	bt.client = b.Publisher.Connect()
+	ticker := time.NewTicker(bt.config.Period)
 	counter := 1
 	for {
 		select {
@@ -262,46 +273,54 @@ func (bt *Lsbeat) Run(b *beat.Beat) error {
 }
 ```
 
-`event := common.MapStr{}` code on `Run` function is the code that stores json document format, and `bt.client.PublishEvent(event)` code is the code that transfers data to elasticsearch. By now, there are three fields in the document, which is `@timestamp`, `type` and `counter`. In this code we will add the values of files and directories informations that we collected. 
+`event := common.MapStr{}` code on `Run` function is the code that stores json
+document format, and `bt.client.PublishEvent(event)` is  publishing data to
+Elasticsearch. In this example, there are three fields in the document, which
+is `@timestamp`, type and counter. 
 
-Before we modify Run function, lets add `listDir()` function on the bottom of `lsbeat.go` file first, which collect files and directories informations. This function's arguments will be `bt *Lsbeat`, `b *beat.Beat`, `counter int`. And add next 5 fields in event MapStr variable.
-- `modTime`: f.ModTime()
-- `filename`: f.Name()
-- `fullname`: dirFile + "/" + f.Name()
-- `isDirectory`: f.IsDir()
-- `fileSize`: f.Size()
+In the case of `Lsbeat`, we want to extend the Run function to export  files and directories informations.
+
+Before we modify the `Run()` function, lets add `listDir()` function on the
+bottom of `lsbeat.go` file first, which collect files and directories informations.  It generates events that include:
+
+- `@timestamp`:  common.Time(time.Now()),
+- `type`:        beatname,
+- `modtime`:     common.Time(t),
+- `filename`:    f.Name(),
+- `path`:    dirFile + "/" + f.Name(),
+- `directory`: f.IsDir(),
+- `filesize`:    f.Size(),
 
 It will index all files and directories for the first time, but after first routine it will check if file or directory is created or modified after first routine, to index only newer files and directories. Timestamp of last routine will be saved in `lasIndexTime` variable.
 
 ```go
-//Collect files and directories informations and transfers to elasticsearch.
-func listDir(dirFile string, bt *Lsbeat, b *beat.Beat, counter int) {
+func (bt *Lsbeat) listDir(dirFile string, beatname string, init bool) {
 	files, _ := ioutil.ReadDir(dirFile)
 	for _, f := range files {
 		t := f.ModTime()
+		//fmt.Println(f.Name(), dirFile+"/"+f.Name(), f.IsDir(), t, f.Size())
 
 		event := common.MapStr{
-			"@timestamp":  common.Time(time.Now()),
-			"type":        b.Name,
-			"counter":     counter,
-			"modTime":     t,
-			"filename":    f.Name(),
-			"fullname":    dirFile + "/" + f.Name(),
-			"isDirectory": f.IsDir(),
-			"fileSize":    f.Size(),
+			"@timestamp": common.Time(time.Now()),
+			"type":       beatname,
+			"modtime":    common.Time(t),
+			"filename":   f.Name(),
+			"path":       dirFile + "/" + f.Name(),
+			"directory":  f.IsDir(),
+			"filesize":   f.Size(),
 		}
-		//index all files and directories on first routine
-		if counter == 1 {
-			bt.client.PublishEvent(event)
+		if init {
+			// index all files and directories on init
+			bt.client.PublishEvent(event) //elasticsearch index.
 		} else {
-			//from 2nd routine, index only new created or modified files and directories.
-			if t.After(bt.lasIndexTime) {
-				bt.client.PublishEvent(event)
+			// Index only changed files since last run.
+			if t.After(bt.lastIndexTime) {
+				bt.client.PublishEvent(event) //elasticsearch index.
 			}
 		}
 
 		if f.IsDir() {
-			listDir(dirFile+"/"+f.Name(), bt, b, counter)
+			bt.listDir(dirFile+"/"+f.Name(), beatname, init)
 		}
 	}
 }
@@ -315,33 +334,31 @@ import (
 	"time"
 ```  
 
-Now, comment (erase) index code on `Run` function and add a code to call `listDir` and save timestamp in `lasIndexTime` variable.
+Now, let’s see the `Run()` function that calls `listDir()` function and saves
+timestamp in `lasIndexTime` variable.
+
 ```go
 func (bt *Lsbeat) Run(b *beat.Beat) error {
 	logp.Info("lsbeat is running! Hit CTRL-C to stop it.")
 
-	ticker := time.NewTicker(bt.period)
+	bt.client = b.Publisher.Connect()
+	ticker := time.NewTicker(bt.config.Period)
 	counter := 1
 	for {
-		listDir(bt.path, bt, b, counter) // call lsbeat
-		bt.lasIndexTime = time.Now()     // save timestamp
 
 		select {
 		case <-bt.done:
 			return nil
 		case <-ticker.C:
 		}
-		
-		// event := common.MapStr{
-		// 	"@timestamp": common.Time(time.Now()),
-		// 	"type":       b.Name,
-		// 	"counter":    counter,
-		// }
-		// bt.client.PublishEvent(event)
+
+		bt.listDir(bt.config.Path, b.Name, true)   // call lsDir
+		bt.lastIndexTime = time.Now()               // mark Timestamp
 
 		logp.Info("Event sent")
 		counter++
 	}
+
 }
 ```
 
@@ -357,14 +374,14 @@ We are almost done with coding. We have to add new fields on mapping. Add files 
       description: >
         PLEASE UPDATE DOCUMENTATION
     #new fiels added lsbeat
-    - name: modTime
+    - name: modtime
       type: date
     - name: filename
       type: text
-    - name: fullname
-    - name: isDirectory
+    - name: path
+    - name: directory
       type: boolean
-    - name: fileSize
+    - name: filesize
       type: long
 ```
 

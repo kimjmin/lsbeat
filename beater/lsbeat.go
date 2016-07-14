@@ -75,13 +75,13 @@ func (bt *Lsbeat) listDir(dirFile string, beatname string, init bool) {
 		//fmt.Println(f.Name(), dirFile+"/"+f.Name(), f.IsDir(), t, f.Size())
 
 		event := common.MapStr{
-			"@timestamp":  common.Time(time.Now()),
-			"type":        beatname,
-			"modTime":     common.Time(t),
-			"filename":    f.Name(),
-			"fullname":    dirFile + "/" + f.Name(),
-			"isDirectory": f.IsDir(),
-			"fileSize":    f.Size(),
+			"@timestamp": common.Time(time.Now()),
+			"type":       beatname,
+			"modtime":    common.Time(t),
+			"filename":   f.Name(),
+			"path":       dirFile + "/" + f.Name(),
+			"directory":  f.IsDir(),
+			"filesize":   f.Size(),
 		}
 		if init {
 			// index all files and directories on init
@@ -94,7 +94,7 @@ func (bt *Lsbeat) listDir(dirFile string, beatname string, init bool) {
 		}
 
 		if f.IsDir() {
-			bt.listDir(dirFile+"/"+f.Name(), beatname, counter)
+			bt.listDir(dirFile+"/"+f.Name(), beatname, init)
 		}
 	}
 }

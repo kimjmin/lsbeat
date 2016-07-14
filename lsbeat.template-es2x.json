@@ -40,8 +40,8 @@
         "counter": {
           "type": "long"
         },
-        "fileSize": {
-          "type": "long"
+        "directory": {
+          "type": "boolean"
         },
         "filename": {
           "index": "analyzed",
@@ -50,16 +50,16 @@
           },
           "type": "string"
         },
-        "fullname": {
+        "filesize": {
+          "type": "long"
+        },
+        "modtime": {
+          "type": "date"
+        },
+        "path": {
           "ignore_above": 1024,
           "index": "not_analyzed",
           "type": "string"
-        },
-        "isDirectory": {
-          "type": "boolean"
-        },
-        "modTime": {
-          "type": "date"
         },
         "tags": {
           "ignore_above": 1024,

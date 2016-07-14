@@ -1,6 +1,6 @@
 - key: lsbeat
   title: LS Beat
-  descrtiption: 
+  description: 
   fields:
     - name: counter
       type: integer
@@ -8,12 +8,12 @@
       description: >
         PLEASE UPDATE DOCUMENTATION
     #new fiels added lsbeat
-    - name: modTime
+    - name: modtime
       type: date
     - name: filename
       type: text
-    - name: fullname
-    - name: isDirectory
+    - name: path
+    - name: directory
       type: boolean
-    - name: fileSize
+    - name: filesize
       type: long
