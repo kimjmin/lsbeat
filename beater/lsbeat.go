@@ -3,6 +3,7 @@ package beater
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"time"
 
 	"github.com/elastic/beats/libbeat/beat"
@@ -41,26 +42,21 @@ func (bt *Lsbeat) Run(b *beat.Beat) error {
 	logp.Info("lsbeat is running! Hit CTRL-C to stop it.")
 
 	bt.client = b.Publisher.Connect()
-
-	bt.listDir(bt.config.Path, b.Name, true) // init directory
-	bt.lastIndexTime = time.Now()            // init indexing timestamp
-
 	ticker := time.NewTicker(bt.config.Period)
+
 	for {
+		now := time.Now()
+		bt.listDir(bt.config.Path, b.Name) // call lsDir
+		bt.lastIndexTime = now             // mark Timestamp
+
+		logp.Info("Event sent")
 
 		select {
 		case <-bt.done:
 			return nil
 		case <-ticker.C:
 		}
-
-		now := time.Now()
-		bt.listDir(bt.config.Path, b.Name, false) // call lsDir
-		bt.lastIndexTime = now                    // mark Timestamp
-
-		logp.Info("Event sent")
 	}
-
 }
 
 func (bt *Lsbeat) Stop() {
@@ -68,33 +64,28 @@ func (bt *Lsbeat) Stop() {
 	close(bt.done)
 }
 
-func (bt *Lsbeat) listDir(dirFile string, beatname string, init bool) {
+func (bt *Lsbeat) listDir(dirFile string, beatname string) {
 	files, _ := ioutil.ReadDir(dirFile)
 	for _, f := range files {
 		t := f.ModTime()
-		//fmt.Println(f.Name(), dirFile+"/"+f.Name(), f.IsDir(), t, f.Size())
+		path := filepath.Join(dirFile, f.Name())
 
-		event := common.MapStr{
-			"@timestamp": common.Time(time.Now()),
-			"type":       beatname,
-			"modtime":    common.Time(t),
-			"filename":   f.Name(),
-			"path":       dirFile + "/" + f.Name(),
-			"directory":  f.IsDir(),
-			"filesize":   f.Size(),
-		}
-		if init {
-			// index all files and directories on init
-			bt.client.PublishEvent(event) //elasticsearch index.
-		} else {
-			// Index only changed files since last run.
-			if t.After(bt.lastIndexTime) {
-				bt.client.PublishEvent(event) //elasticsearch index.
+		if t.After(bt.lastIndexTime) {
+			event := common.MapStr{
+				"@timestamp": common.Time(time.Now()),
+				"type":       beatname,
+				"modtime":    common.Time(t),
+				"filename":   f.Name(),
+				"path":       path,
+				"directory":  f.IsDir(),
+				"filesize":   f.Size(),
 			}
+
+			bt.client.PublishEvent(event)
 		}
 
 		if f.IsDir() {
-			bt.listDir(dirFile+"/"+f.Name(), beatname, init)
+			bt.listDir(path, beatname)
 		}
 	}
 }
