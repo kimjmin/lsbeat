@@ -41,6 +41,13 @@
         "filename": {
           "norms": false,
           "type": "text"
+<<<<<<< Updated upstream
+=======
+        },
+        "fullname": {
+          "ignore_above": 1024,
+          "type": "keyword"
+>>>>>>> Stashed changes
         },
         "filesize": {
           "type": "long"
