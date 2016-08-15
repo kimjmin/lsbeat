@@ -144,7 +144,16 @@ type Beater interface {
 }
 ```
 
+
 ### code beater/lsbeat.go
+
+
+Once we changed config file, we have to add some codes for our beats. Each beat implemet Beater interface, by defining Run() and Stop() functions.
+We already have lsbeat.go file under beater directory. Lets look into it.
+
+We will add lastIndexTime variable, which we will use for saving the last timestamp data.
+
+
 ```
 vi beater/lsbeat.go
 ```
